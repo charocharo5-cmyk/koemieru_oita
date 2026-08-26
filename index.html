@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>こえみえる — 声を文字に</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#16202b">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="こえみえる">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy: #16202b;
+    --navy-deep: #0e161e;
+    --cream: #f4ecd8;
+    --amber: #e3a94a;
+    --teal: #5fb3a3;
+    --rose: #d1685f;
+    --line: rgba(244,236,216,0.14);
+  }
+  *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html,body{
+    margin:0; padding:0; height:100%;
+    background: var(--navy-deep);
+    color: var(--cream);
+    font-family: "Zen Kaku Gothic New", sans-serif;
+    overflow: hidden;
+  }
+  body{
+    display:flex; flex-direction:column;
+    height:100vh; height:100dvh;
+  }
+
+  header{
+    flex: 0 0 auto;
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 14px 20px;
+    background: var(--navy);
+    border-bottom: 1px solid var(--line);
+  }
+  .brand{ display:flex; align-items:center; gap:10px; }
+  .brand-mark{
+    width:34px; height:34px; border-radius:50%;
+    background: radial-gradient(circle at 35% 35%, var(--teal), #2f6b60);
+    flex:0 0 auto;
+  }
+  .brand-name{ font-family:"Zen Maru Gothic", sans-serif; font-weight:700; font-size:18px; letter-spacing:.02em; }
+  .brand-sub{ font-size:11px; color:rgba(244,236,216,.55); margin-top:1px; }
+
+  .size-controls{ display:flex; gap:6px; }
+  .size-btn{
+    width:36px; height:36px; border-radius:10px;
+    border:1px solid var(--line); background:transparent;
+    color: var(--cream); font-family:"Zen Maru Gothic",sans-serif; font-weight:700;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+  }
+  .size-btn.active{ background: var(--amber); color: var(--navy-deep); border-color: var(--amber); }
+  .size-btn:nth-child(1){ font-size:12px; }
+  .size-btn:nth-child(2){ font-size:15px; }
+  .size-btn:nth-child(3){ font-size:18px; }
+
+  main{
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 28px 22px 140px;
+    display:flex; flex-direction:column; gap:22px;
+  }
+  .placeholder{
+    margin:auto; text-align:center; color: rgba(244,236,216,.4);
+    font-family:"Zen Maru Gothic",sans-serif;
+  }
+  .placeholder .big{ font-size:22px; margin-bottom:10px; }
+  .placeholder .small{ font-size:14px; }
+
+  .line{
+    display:flex; flex-direction:row; align-items:flex-start; gap:10px;
+    animation: rise .35s ease-out;
+  }
+  @keyframes rise{ from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:translateY(0); } }
+  .line .text{
+    flex: 1 1 auto;
+    font-family:"Zen Maru Gothic", sans-serif;
+    font-weight:700;
+    line-height:1.55;
+    word-break: break-word;
+    outline: none;
+    border-radius: 8px;
+    padding: 2px 6px;
+    margin: -2px -6px;
+  }
+  .line .text:focus{
+    background: rgba(227,169,74,0.12);
+    box-shadow: 0 0 0 2px var(--amber);
+  }
+  .line .del-line{
+    flex: 0 0 auto;
+    width:30px; height:30px; border-radius:50%;
+    border:1px solid var(--line); background: var(--navy);
+    color: rgba(244,236,216,.6);
+    font-size:16px; line-height:1; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    margin-top: 4px;
+  }
+  body[data-size="s"] .line .text{ font-size: 26px; }
+  body[data-size="m"] .line .text{ font-size: 36px; }
+  body[data-size="l"] .line .text{ font-size: 48px; }
+
+  .interim{
+    font-family:"Zen Maru Gothic", sans-serif;
+    font-weight:500;
+    color: rgba(244,236,216,.5);
+    line-height:1.55;
+  }
+  body[data-size="s"] .interim{ font-size: 24px; }
+  body[data-size="m"] .interim{ font-size: 32px; }
+  body[data-size="l"] .interim{ font-size: 42px; }
+
+  footer{
+    flex: 0 0 auto;
+    position:absolute; left:0; right:0; bottom:0;
+    display:flex; align-items:center; justify-content:center; gap:22px;
+    padding: 18px 20px calc(20px + env(safe-area-inset-bottom));
+    background: linear-gradient(180deg, transparent, var(--navy-deep) 30%);
+  }
+  .clear-btn{
+    width:52px; height:52px; border-radius:50%;
+    border:1px solid var(--line); background: var(--navy);
+    color: rgba(244,236,216,.7);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+  }
+  .clear-btn svg{ width:22px; height:22px; }
+
+  .mic-wrap{ position:relative; width:96px; height:96px; }
+  .pulse{
+    position:absolute; inset:0; border-radius:50%;
+    background: var(--teal); opacity:0;
+  }
+  body[data-listening="1"] .pulse{
+    animation: pulse 1.8s ease-out infinite;
+  }
+  @keyframes pulse{
+    0%{ opacity:.55; transform:scale(1); }
+    100%{ opacity:0; transform:scale(1.9); }
+  }
+  .mic-btn{
+    position:absolute; inset:0; border-radius:50%;
+    border:none; cursor:pointer;
+    background: var(--amber);
+    color: var(--navy-deep);
+    display:flex; align-items:center; justify-content:center;
+    box-shadow: 0 6px 22px rgba(0,0,0,.4);
+    transition: background .2s ease, transform .15s ease;
+  }
+  .mic-btn:active{ transform: scale(.95); }
+  body[data-listening="1"] .mic-btn{ background: var(--teal); }
+  .mic-btn svg{ width:36px; height:36px; }
+
+  .status{
+    position:absolute; top:-30px; left:50%; transform:translateX(-50%);
+    white-space:nowrap; font-size:13px; color: rgba(244,236,216,.6);
+    font-family:"Zen Maru Gothic",sans-serif;
+    max-width: 280px; overflow:hidden; text-overflow:ellipsis;
+  }
+
+  .lang-tag{
+    width:52px; height:52px; border-radius:50%;
+    border:1px solid var(--line); background: var(--navy);
+    color: rgba(244,236,216,.7);
+    display:flex; align-items:center; justify-content:center;
+    font-size:12px; font-weight:700; cursor:pointer;
+    font-family:"Zen Maru Gothic",sans-serif;
+  }
+
+  .unsupported{
+    margin:auto; text-align:center; padding: 40px 24px;
+    font-family:"Zen Maru Gothic",sans-serif;
+  }
+  .unsupported .big{ font-size:22px; margin-bottom:12px; color: var(--rose); }
+  .unsupported .small{ font-size:15px; line-height:1.7; color: rgba(244,236,216,.75); }
+
+  .dict-btn{
+    width:36px; height:36px; border-radius:10px;
+    border:1px solid var(--line); background:transparent;
+    color: var(--cream);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; margin-right:6px;
+  }
+  .dict-btn svg{ width:18px; height:18px; }
+
+  .dict-overlay{
+    position:fixed; inset:0; background: rgba(14,22,30,.88);
+    display:none; align-items:flex-end; justify-content:center;
+    z-index: 50;
+  }
+  .dict-overlay.open{ display:flex; }
+  .dict-panel{
+    width:100%; max-width:520px;
+    background: var(--navy);
+    border-radius: 20px 20px 0 0;
+    padding: 20px 20px calc(24px + env(safe-area-inset-bottom));
+    max-height: 78vh; display:flex; flex-direction:column;
+    border-top: 1px solid var(--line);
+  }
+  .dict-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+  .dict-title{ font-family:"Zen Maru Gothic",sans-serif; font-weight:700; font-size:18px; }
+  .dict-close{
+    border:none; background:transparent; color: var(--amber);
+    font-family:"Zen Maru Gothic",sans-serif; font-weight:700; font-size:14px; cursor:pointer;
+    padding: 6px 4px;
+  }
+  .dict-desc{ font-size:13px; color: rgba(244,236,216,.55); margin-bottom:14px; line-height:1.6; }
+  .dict-list{ overflow-y:auto; display:flex; flex-direction:column; gap:8px; margin-bottom:14px; }
+  .dict-item{
+    display:flex; align-items:center; gap:10px;
+    background: var(--navy-deep); border:1px solid var(--line);
+    border-radius: 12px; padding: 10px 12px;
+  }
+  .dict-item .from{ color: rgba(244,236,216,.55); font-size:14px; }
+  .dict-item .arrow{ color: var(--teal); font-size:13px; }
+  .dict-item .to{ color: var(--cream); font-weight:700; font-size:15px; flex:1; }
+  .dict-item .del{
+    border:none; background:transparent; color: var(--rose);
+    font-size:18px; cursor:pointer; line-height:1; padding:2px 4px;
+  }
+  .dict-empty{ color: rgba(244,236,216,.4); font-size:13px; text-align:center; padding: 10px 0; }
+  .dict-add{
+    border:1px dashed var(--line); background:transparent; color: var(--amber);
+    border-radius:12px; padding:12px; font-size:15px; font-weight:700;
+    font-family:"Zen Maru Gothic",sans-serif; cursor:pointer;
+  }
+  .dict-io{ display:flex; gap:10px; margin-top:10px; }
+  .dict-io-btn{
+    flex:1; border:1px solid var(--line); background: var(--navy-deep);
+    color: rgba(244,236,216,.75); border-radius:12px; padding:10px;
+    font-size:13px; font-weight:700; font-family:"Zen Maru Gothic",sans-serif;
+    cursor:pointer;
+  }
+</style>
+</head>
+<body data-size="m" data-listening="0">
+
+<header>
+  <div class="brand">
+    <div class="brand-mark"></div>
+    <div>
+      <div class="brand-name">こえみえる</div>
+      <div class="brand-sub">話した言葉を大きな文字に</div>
+    </div>
+  </div>
+  <div style="display:flex; align-items:center;">
+    <button class="dict-btn" id="dictBtn" title="言い換え辞書">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+    </button>
+    <div class="size-controls" id="sizeControls">
+      <button class="size-btn" data-size="s">小</button>
+      <button class="size-btn active" data-size="m">中</button>
+      <button class="size-btn" data-size="l">大</button>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+  <div class="placeholder" id="placeholder">
+    <div class="big">マイクのボタンを押してください</div>
+    <div class="small">話した内容がここに大きく表示されます</div>
+  </div>
+</main>
+
+<footer>
+  <button class="clear-btn" id="clearBtn" title="消去">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>
+  </button>
+
+  <div class="mic-wrap">
+    <div class="status" id="status"></div>
+    <div class="pulse"></div>
+    <button class="mic-btn" id="micBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+    </button>
+  </div>
+
+  <button class="lang-tag" id="langTag">日本語</button>
+</footer>
+
+<div class="dict-overlay" id="dictOverlay">
+  <div class="dict-panel">
+    <div class="dict-header">
+      <div class="dict-title">言い換え辞書</div>
+      <button class="dict-close" id="dictClose">閉じる</button>
+    </div>
+    <div class="dict-desc">方言や誤認識されやすい言葉を、正しい表記に自動で直します。</div>
+    <div class="dict-list" id="dictList"></div>
+    <button class="dict-add" id="dictAddBtn">＋ 言葉を追加</button>
+    <div class="dict-io">
+      <button class="dict-io-btn" id="dictExportBtn">書き出し</button>
+      <button class="dict-io-btn" id="dictImportBtn">読み込み</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const body = document.body;
+const main = document.getElementById('main');
+const placeholder = document.getElementById('placeholder');
+const micBtn = document.getElementById('micBtn');
+const clearBtn = document.getElementById('clearBtn');
+const statusEl = document.getElementById('status');
+const langTag = document.getElementById('langTag');
+const sizeControls = document.getElementById('sizeControls');
+
+let lang = 'ja-JP';
+const langs = { 'ja-JP': '日本語', 'en-US': 'English' };
+
+sizeControls.addEventListener('click', (e) => {
+  const btn = e.target.closest('.size-btn');
+  if(!btn) return;
+  document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  body.setAttribute('data-size', btn.dataset.size);
+});
+
+langTag.addEventListener('click', () => {
+  const keys = Object.keys(langs);
+  const idx = (keys.indexOf(lang) + 1) % keys.length;
+  lang = keys[idx];
+  langTag.textContent = langs[lang];
+  if (recognition) {
+    recognition.lang = lang;
+    if (listening) { restartRecognition(); }
+  }
+});
+
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition = null;
+let listening = false;
+let shouldRestart = false;
+let interimEl = null;
+let restartTimer = null;
+
+const DICT_KEY = 'koe-mieru-dict-v1';
+const DEFAULT_DICT = [
+  { from: 'よだきい', to: 'よだきい（めんどくさい）' },
+  { from: 'よだきー', to: 'よだきー（めんどくさい）' },
+  { from: 'よだぎぃ', to: 'よだぎぃ（めんどくさい）' },
+  { from: 'なおしちょって', to: 'なおしちょって（片付けておいて）' },
+  { from: 'なおしよって', to: 'なおしよって（片付けておいて）' },
+  { from: 'しんけん', to: 'しんけん（とても）' },
+  { from: 'むげねぇ', to: 'むげねぇ（かわいそう）' },
+  { from: 'むげねえ', to: 'むげねえ（かわいそう）' },
+  { from: 'しゃあしい', to: 'しゃあしい（うるさい）' },
+  { from: 'わけない', to: 'わけない（簡単）' },
+  { from: 'わきゃねえ', to: 'わきゃねえ（簡単）' },
+  { from: 'わぎゃねがな', to: 'わぎゃねがな（簡単だよね）' },
+  { from: 'やつがい', to: 'やつがい（晩酌）' },
+  { from: 'ぎゅうらしい', to: 'ぎゅうらしい（大げさ）' },
+  { from: 'ぎゅーらしい', to: 'ぎゅーらしい（大げさ）' },
+  { from: 'くされ', to: 'くされ（意地悪）' },
+  { from: 'さしより', to: 'さしより（ひとまず）' },
+  { from: 'せちい', to: 'せちい（切ない）' },
+  { from: 'いっすんずり', to: 'いっすんずり（大渋滞）' },
+  { from: 'いびしー', to: 'いびしー（気味が悪い）' },
+  { from: 'うっせー', to: 'うっせー（まずい）' },
+  { from: 'せっちくれ', to: 'せっちくれ（後ろから押してください）' },
+  { from: '行くっちゃ', to: '行くっちゃ（行くよ）' },
+  { from: 'そうやに', to: 'そうやに（そうだよ）' },
+  { from: 'そーでー', to: 'そーでー（そうだよ）' },
+  { from: 'おしなぎい', to: 'おしなぎい（もったいない）' },
+  { from: 'おしなぎぃ', to: 'おしなぎぃ（もったいない）' },
+  { from: 'あいた', to: 'あいた（しまった）' },
+  { from: 'できられへん', to: 'できられへん（絶対にできない）' },
+  { from: 'じりー', to: 'じりー（ぬかるんでいる）' },
+  { from: 'けとろく', to: 'けとろく（つまらない）' },
+  { from: 'がまだす', to: 'がまだす（頑張る）' },
+  { from: 'がまだせ', to: 'がまだせ（頑張れ）' },
+  { from: 'しゃっち', to: 'しゃっち（無理に）' },
+  { from: 'づつねぇ', to: 'づつねぇ（頭が痛い）' },
+  { from: 'づつねえ', to: 'づつねえ（頭が痛い）' },
+  { from: 'めんどしい', to: 'めんどしい（恥ずかしい）' },
+  { from: 'めんどしー', to: 'めんどしー（恥ずかしい）' },
+  { from: 'こばす', to: 'こばす（気取る）' },
+  { from: 'にごじゅー', to: 'にごじゅー（お手上げ）' },
+  { from: 'えらしー', to: 'えらしー（かわいらしい）' },
+  { from: 'えらしい', to: 'えらしい（かわいらしい）' },
+  { from: 'ちちまわす', to: 'ちちまわす（やっつける）' },
+  { from: 'ちちころすど', to: 'ちちころすど（ぼこぼこにしてやる）' },
+  { from: 'げさきぃ', to: 'げさきぃ（下品）' },
+  { from: 'あっちあられん', to: 'あっちあられん（あるはずがない）' },
+  { from: 'ずっちょくれ', to: 'ずっちょくれ（横にずれてください）' },
+  { from: 'あんげこんげ', to: 'あんげこんげ（あっちこっち）' },
+  { from: 'かてて', to: 'かてて（仲間に加えて）' },
+  { from: 'どおくる', to: 'どおくる（ふざける）' },
+  { from: 'どーくる', to: 'どーくる（ふざける）' },
+  { from: 'おちょる', to: 'おちょる（いる）' },
+  { from: 'おちょるかえ', to: 'おちょるかえ（いますか）' },
+  { from: 'きちょくれ', to: 'きちょくれ（来てください）' },
+  { from: 'けんちょいき', to: 'けんちょいき（上等な服、よそいき）' },
+  { from: 'ずりきー', to: 'ずりきー（ずるい）' },
+  { from: 'こしきー', to: 'こしきー（ずるい・横着）' },
+  { from: 'おーちゃきー', to: 'おーちゃきー（ずるい・横着）' },
+  { from: 'だぶとん', to: 'だぶとん（座布団）' },
+  { from: 'だぶとんどーど', to: 'だぶとんどーど（座布団どうぞ）' },
+  { from: 'どべ', to: 'どべ（ビリ・最下位）' },
+  { from: 'ほげ', to: 'ほげ（でたらめ・嘘）' },
+  { from: 'さかしー', to: 'さかしー（元気）' },
+  { from: 'さかしい', to: 'さかしい（元気）' },
+  { from: 'さかしいかえ', to: 'さかしいかえ（元気にしてる？）' },
+  { from: 'かたる', to: 'かたる（仲間に加わる）' },
+  { from: 'かたらんかえ', to: 'かたらんかえ（参加しませんか）' },
+  { from: 'あだむねをつく', to: 'あだむねをつく（当てが外れてがっかりする）' },
+  { from: 'いばかり', to: 'いばかり（わがまま）' },
+  { from: 'すもつくれん', to: 'すもつくれん（役に立たない）' },
+  { from: 'なえ', to: 'なえ（地震）' },
+  { from: 'ねぶる', to: 'ねぶる（舐める）' },
+  { from: 'はわく', to: 'はわく（掃く）' },
+  { from: 'バカビー', to: 'バカビー（バカな女）' },
+  { from: 'バカピー', to: 'バカピー（バカな女）' },
+  { from: 'バカボン', to: 'バカボン（バカな男）' },
+  { from: 'びびんこ', to: 'びびんこ（肩車）' },
+  { from: 'みちみない', to: 'みちみない（ご覧なさい）' },
+  { from: 'はじましち', to: 'はじましち（はじめまして）' },
+  { from: 'いーひよりじゃ', to: 'いーひよりじゃ（いい天気ですね）' },
+  { from: 'どーど、あがっちょくれ', to: 'どーど、あがっちょくれ（どうぞ上がってください）' },
+  { from: 'めんどしーじ、こたえん', to: 'めんどしーじ、こたえん（恥ずかしくてたまらない）' },
+  { from: 'いちみちきちくりー', to: 'いちみちきちくりー（行ってみてきてください）' },
+  { from: 'おめれとごだいます', to: 'おめれとごだいます（おめでとうございます）' },
+  { from: '書かれてください', to: '書かれてください（書いてください）' },
+  { from: 'けまつれた', to: 'けまつれた（つまずいた）' },
+  { from: 'あんたんこと好きやに', to: 'あんたんこと好きやに（あなたのことが好きだよ）' },
+  { from: 'あんたが好きっちゃ', to: 'あんたが好きっちゃ（あなたが好きです）' },
+  { from: '付き合おうえ', to: '付き合おうえ（付き合おうよ）' },
+  { from: 'しんけん好きやに', to: 'しんけん好きやに（本気で好きだよ）' },
+  { from: '愛しちょん', to: '愛しちょん（愛してる）' },
+  { from: 'よろしゅうお願いします', to: 'よろしゅうお願いします（よろしくお願いします）' },
+  { from: 'ちちまわすど', to: 'ちちまわすど（やっつけてやるぞ）' },
+  { from: 'なんかけとろく', to: 'なんかけとろく（なんかつまらない）' },
+  { from: 'そげえ', to: 'そげえ（そんなに）' },
+  { from: 'もんじゃねー', to: 'もんじゃねー（ものじゃないよ）' },
+  { from: '雨い降る', to: '雨い降る（雨が降る）' },
+  { from: 'ずりきーやつだ', to: 'ずりきーやつだ（ずるいやつだ）' },
+  { from: 'なえに負けん', to: 'なえに負けん（地震に負けない）' },
+  { from: 'じりーじ', to: 'じりーじ（道がぬかるんでいる）' },
+  { from: 'づつねぇけど', to: 'づつねぇけど（頭が痛いけど）' },
+  { from: '書かれち', to: '書かれち（書いて）' },
+  { from: 'げさきぃけん', to: 'げさきぃけん（下品だから）' }
+];
+
+function loadDict(){
+  try{
+    const raw = localStorage.getItem(DICT_KEY);
+    if(raw) return JSON.parse(raw);
+  } catch(e){}
+  saveDict(DEFAULT_DICT);
+  return DEFAULT_DICT.slice();
+}
+
+function saveDict(dict){
+  try{ localStorage.setItem(DICT_KEY, JSON.stringify(dict)); } catch(e){}
+}
+
+let dictionary = loadDict();
+
+function applyDictionary(text){
+  let result = text;
+  dictionary.forEach(({from, to}) => {
+    if(!from) return;
+    result = result.split(from).join(to);
+  });
+  return result;
+}
+
+function addPunctuation(text){
+  const trimmed = text.trim();
+  if(!trimmed) return trimmed;
+  const last = trimmed.slice(-1);
+  if(['。','！','？','!','?'].includes(last)) return trimmed;
+  return trimmed + '。';
+}
+
+function renderDictList(){
+  const listEl = document.getElementById('dictList');
+  listEl.innerHTML = '';
+  if(dictionary.length === 0){
+    listEl.innerHTML = '<div class="dict-empty">まだ登録がありません</div>';
+    return;
+  }
+  dictionary.forEach((item, idx) => {
+    const row = document.createElement('div');
+    row.className = 'dict-item';
+    row.innerHTML = `<span class="from">${item.from}</span><span class="arrow">→</span><span class="to">${item.to}</span>`;
+    const del = document.createElement('button');
+    del.className = 'del';
+    del.textContent = '×';
+    del.addEventListener('click', () => {
+      dictionary.splice(idx, 1);
+      saveDict(dictionary);
+      renderDictList();
+    });
+    row.appendChild(del);
+    listEl.appendChild(row);
+  });
+}
+
+
+function addFinalLine(text, rawText){
+  if(!text.trim()) return;
+  if(placeholder) { placeholder.remove(); }
+  const line = document.createElement('div');
+  line.className = 'line';
+  const t = document.createElement('div');
+  t.className = 'text';
+  t.textContent = text;
+  t.contentEditable = 'true';
+  t.spellcheck = false;
+  t.dataset.raw = rawText !== undefined ? rawText : text;
+  t.dataset.corrected = text;
+  t.addEventListener('blur', () => {
+    const edited = t.textContent.trim();
+    if(!edited){
+      line.remove();
+      showPlaceholderIfEmpty();
+      return;
+    }
+    if(edited !== t.dataset.corrected){
+      learnCorrection(t.dataset.raw, edited);
+      t.dataset.corrected = edited;
+      flashLearned(t);
+    }
+  });
+  const del = document.createElement('button');
+  del.className = 'del-line';
+  del.textContent = '×';
+  del.title = 'この行を消す';
+  del.addEventListener('click', () => {
+    line.remove();
+    showPlaceholderIfEmpty();
+  });
+  line.appendChild(t);
+  line.appendChild(del);
+  main.appendChild(line);
+  scrollToBottom();
+}
+
+function stripEndPunct(s){
+  return s.replace(/[。！？!?]+$/,'');
+}
+
+function diffCorrection(oldStr, newStr){
+  let start = 0;
+  const maxStart = Math.min(oldStr.length, newStr.length);
+  while(start < maxStart && oldStr[start] === newStr[start]) start++;
+  let oldEnd = oldStr.length, newEnd = newStr.length;
+  while(oldEnd > start && newEnd > start && oldStr[oldEnd-1] === newStr[newEnd-1]){
+    oldEnd--; newEnd--;
+  }
+  return { from: oldStr.slice(start, oldEnd), to: newStr.slice(start, newEnd) };
+}
+
+function learnCorrection(raw, editedFull){
+  if(!raw || !raw.trim()) return;
+  const rawTrim = raw.trim();
+  const editedCore = stripEndPunct(editedFull.trim());
+  if(!editedCore || rawTrim === editedCore) return;
+  const { from, to } = diffCorrection(rawTrim, editedCore);
+  if(!from || !to || from === to) return;
+  const existing = dictionary.find(d => d.from === from);
+  if(existing){
+    existing.to = to;
+  } else {
+    dictionary.push({ from, to });
+  }
+  saveDict(dictionary);
+}
+
+function flashLearned(el){
+  const badge = document.createElement('span');
+  badge.textContent = ' 覚えました';
+  badge.style.cssText = 'font-size:12px;color:var(--teal);font-family:"Zen Maru Gothic",sans-serif;font-weight:500;';
+  el.insertAdjacentElement('afterend', badge);
+  setTimeout(() => badge.remove(), 1800);
+}
+
+function showPlaceholderIfEmpty(){
+  if(main.children.length > 0) return;
+  const p = document.createElement('div');
+  p.className = 'placeholder';
+  p.id = 'placeholder';
+  p.innerHTML = '<div class="big">マイクのボタンを押してください</div><div class="small">話した内容がここに大きく表示されます</div>';
+  main.appendChild(p);
+}
+
+function setInterim(text){
+  if(!interimEl){
+    interimEl = document.createElement('div');
+    interimEl.className = 'interim';
+    main.appendChild(interimEl);
+  }
+  interimEl.textContent = text;
+  scrollToBottom();
+}
+
+function clearInterim(){
+  if(interimEl){ interimEl.remove(); interimEl = null; }
+}
+
+function scrollToBottom(){
+  main.scrollTop = main.scrollHeight;
+}
+
+function setListeningUI(on){
+  listening = on;
+  body.setAttribute('data-listening', on ? '1' : '0');
+  statusEl.textContent = on ? '聞いています…' : '';
+}
+
+if(!SpeechRecognition){
+  main.innerHTML = '<div class="unsupported"><div class="big">このブラウザでは使えません</div><div class="small">お手数ですが、パソコンまたはスマートフォンの<br>「Google Chrome」アプリで開いてください。</div></div>';
+  micBtn.disabled = true;
+  micBtn.style.opacity = '0.4';
+} else {
+  recognition = new SpeechRecognition();
+  recognition.lang = lang;
+  // iOS(Safariエンジン)はcontinuous:trueが不安定なため、
+  // 短いセッションを自動でつなぎ直す方式にする
+  recognition.continuous = false;
+  recognition.interimResults = true;
+
+  recognition.onstart = () => {
+    statusEl.textContent = '聞いています…';
+  };
+
+  recognition.onresult = (event) => {
+    let interim = '';
+    for(let i = event.resultIndex; i < event.results.length; i++){
+      const res = event.results[i];
+      if(res.isFinal){
+        const raw = res[0].transcript;
+        const corrected = addPunctuation(applyDictionary(raw));
+        addFinalLine(corrected, raw.trim());
+        clearInterim();
+      } else {
+        interim += res[0].transcript;
+      }
+    }
+    if(interim) setInterim(interim);
+  };
+
+  recognition.onerror = (event) => {
+    if(event.error === 'not-allowed' || event.error === 'service-not-allowed'){
+      statusEl.textContent = 'マイクを許可してください';
+      shouldRestart = false;
+      setListeningUI(false);
+    } else if(event.error === 'no-speech'){
+      // 無音タイムアウトは正常系として自動再開に任せる
+    } else {
+      statusEl.textContent = 'エラー: ' + event.error;
+    }
+  };
+
+  recognition.onend = () => {
+    if(shouldRestart){
+      clearTimeout(restartTimer);
+      restartTimer = setTimeout(() => {
+        try{ recognition.start(); } catch(e){}
+      }, 250);
+    } else {
+      setListeningUI(false);
+    }
+  };
+
+  function restartRecognition(){
+    shouldRestart = true;
+    try{ recognition.stop(); } catch(e){}
+  }
+
+  micBtn.addEventListener('click', () => {
+    if(!listening){
+      statusEl.textContent = '起動中…';
+      if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
+        navigator.mediaDevices.getUserMedia({ audio: true })
+          .then((stream) => {
+            stream.getTracks().forEach(t => t.stop());
+            startRecognitionSafely();
+          })
+          .catch((err) => {
+            statusEl.textContent = 'マイクが使えません: ' + err.name;
+          });
+      } else {
+        startRecognitionSafely();
+      }
+    } else {
+      shouldRestart = false;
+      clearTimeout(restartTimer);
+      try{ recognition.stop(); } catch(e){}
+      setListeningUI(false);
+    }
+  });
+
+  function startRecognitionSafely(){
+    shouldRestart = true;
+    try{
+      recognition.start();
+      setListeningUI(true);
+    } catch(e){
+      statusEl.textContent = 'エラー: ' + e.message;
+      shouldRestart = false;
+    }
+  }
+}
+
+clearBtn.addEventListener('click', () => {
+  main.innerHTML = '';
+  clearInterim();
+  const p = document.createElement('div');
+  p.className = 'placeholder';
+  p.id = 'placeholder';
+  p.innerHTML = '<div class="big">マイクのボタンを押してください</div><div class="small">話した内容がここに大きく表示されます</div>';
+  main.appendChild(p);
+});
+
+const dictBtn = document.getElementById('dictBtn');
+const dictOverlay = document.getElementById('dictOverlay');
+const dictClose = document.getElementById('dictClose');
+const dictAddBtn = document.getElementById('dictAddBtn');
+
+dictBtn.addEventListener('click', () => {
+  renderDictList();
+  dictOverlay.classList.add('open');
+});
+dictClose.addEventListener('click', () => {
+  dictOverlay.classList.remove('open');
+});
+dictOverlay.addEventListener('click', (e) => {
+  if(e.target === dictOverlay) dictOverlay.classList.remove('open');
+});
+dictAddBtn.addEventListener('click', () => {
+  const from = window.prompt('聞き取られる言葉（大分弁など）を入力してください');
+  if(!from || !from.trim()) return;
+  const to = window.prompt('画面に表示したい正しい表記を入力してください', from);
+  if(to === null || !to.trim()) return;
+  dictionary.push({ from: from.trim(), to: to.trim() });
+  saveDict(dictionary);
+  renderDictList();
+});
+
+const dictExportBtn = document.getElementById('dictExportBtn');
+const dictImportBtn = document.getElementById('dictImportBtn');
+
+dictExportBtn.addEventListener('click', () => {
+  const json = JSON.stringify(dictionary);
+  window.prompt('この内容を全部コピーして、別の端末やサイトの「読み込み」に貼り付けてください', json);
+});
+
+dictImportBtn.addEventListener('click', () => {
+  const pasted = window.prompt('コピーしておいた内容をここに貼り付けてください');
+  if(!pasted || !pasted.trim()) return;
+  try{
+    const imported = JSON.parse(pasted);
+    if(!Array.isArray(imported)) throw new Error('形式が違います');
+    let added = 0;
+    imported.forEach(item => {
+      if(!item || typeof item.from !== 'string' || typeof item.to !== 'string') return;
+      const existing = dictionary.find(d => d.from === item.from);
+      if(existing){
+        existing.to = item.to;
+      } else {
+        dictionary.push({ from: item.from, to: item.to });
+        added++;
+      }
+    });
+    saveDict(dictionary);
+    renderDictList();
+    alert('読み込みが完了しました（' + imported.length + '件処理）');
+  } catch(e){
+    alert('読み込めませんでした。コピーした内容が正しいか確認してください。');
+  }
+});
+
+
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
